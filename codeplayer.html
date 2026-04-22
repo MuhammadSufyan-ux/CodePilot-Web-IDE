@@ -1,0 +1,2007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced CodePlayer</title>
+    <style>
+        :root {
+            /* Core Colors (Dark Theme) */
+            --bg-color: #1a1a1a;
+            --editor-bg: #1e1e1e;
+            --header-bg: #2b2b2b;
+            --border-color: #404040;
+            --text-color: #e0e0e0;
+            --accent-color: #0078d7; /* Microsoft Blue */
+
+            /* Button & Tab Colors */
+            --button-bg: #005a9e; /* Darker blue for primary buttons */
+            --button-hover: #0078d7; /* Lighter blue on hover */
+            --secondary-button-hover: #3a3a3a; /* Hover for secondary buttons */
+            
+            /* Nav Tab Specifics */
+            --nav-tab-default-bg: #228B22; /* Forest Green */
+            --nav-tab-hover-bg: #2E8B57; /* Sea Green, slightly brighter for hover */
+            --nav-tab-active-bg: var(--accent-color); /* Active blue background */
+
+            /* Editor Tools specific background */
+            --editor-tool-utility-bg: color-mix(in srgb, var(--header-bg) 80%, black);
+
+            /* Modal & Overlay */
+            --modal-content-bg: #2c2c2c;
+            --modal-border: #4d4d4d;
+            --modal-bg: rgba(0, 0, 0, 0.75); /* Used for full-screen backdrop now */
+            --toast-bg: rgba(0, 0, 0, 0.85);
+
+            /* Line Numbers */
+            --line-number-bg: #252526;
+            --line-number-color: #7a7a7a;
+
+            /* Export Button Gradients (Dark) */
+            --export-button-bg1: #0078d7;
+            --export-button-bg2: #005a9e;
+            --export-button-hover1: #0060ad;
+            --export-button-hover2: #004b8b;
+
+            /* UI Elements */
+            --border-radius-sm: 4px;
+            --border-radius-md: 8px;
+            --box-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
+            --box-shadow-md: 0 6px 16px rgba(0, 0, 0, 0.35);
+            --focus-outline-color: var(--accent-color);
+        }
+
+        /* Light theme variables */
+        body.light-theme {
+            /* Core Colors (Light Theme) */
+            --bg-color: #f0f0f0;
+            --editor-bg: #ffffff;
+            --header-bg: #e8e8e8;
+            --border-color: #d0d0d0;
+            --text-color: #333333;
+            --accent-color: #0078d7; /* Microsoft Blue */
+
+            /* Button & Tab Colors */
+            --button-bg: #0078d7;
+            --button-hover: #0060ad;
+            --secondary-button-hover: #d8d8d8; /* Light theme hover for secondary buttons */
+            
+            /* Nav Tab Specifics */
+            --nav-tab-default-bg: #5cb85c; /* A lighter green */
+            --nav-tab-hover-bg: #6bc56b; /* Slightly brighter green for hover */
+            --nav-tab-active-bg: var(--accent-color); /* Active blue background */
+
+            /* Editor Tools specific background */
+            --editor-tool-utility-bg: color-mix(in srgb, var(--header-bg) 80%, white);
+
+            /* Modal & Overlay */
+            --modal-content-bg: #ffffff;
+            --modal-border: #d8d8d8;
+            --modal-bg: rgba(0, 0, 0, 0.4);
+            --toast-bg: rgba(0, 0, 0, 0.8);
+
+            /* Line Numbers */
+            --line-number-bg: #f8f8f8;
+            --line-number-color: #999999;
+
+            /* Export Button Gradients (Light) */
+            --export-button-bg1: #0078d7;
+            --export-button-bg2: #0060ad;
+            --export-button-hover1: #005a9e;
+            --export-button-hover2: #0078d7;
+
+            /* Shadows are generally lighter in light theme */
+            --box-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
+            --box-shadow-md: 0 6px 16px rgba(0, 0, 0, 0.25);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* --- Generic Modal Styles (for pop-ups like Save, Open Browser, Export) --- */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--modal-bg);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease-out;
+        }
+
+        .modal.visible {
+            opacity: 1;
+            display: flex; /* Ensure it shows as flex when visible */
+        }
+
+        .modal-content {
+            background-color: var(--modal-content-bg);
+            padding: 24px;
+            border-radius: var(--border-radius-md); /* More rounded */
+            width: 90%;
+            max-width: 450px; /* Slightly wider default */
+            border: 1px solid var(--modal-border);
+            box-shadow: var(--box-shadow-md); /* More prominent shadow */
+            color: var(--text-color);
+            transition: background-color 0.3s, border-color 0.3s, color 0.3s, transform 0.3s ease-out, opacity 0.3s ease-out;
+            transform: translateY(-20px); /* For centered modals */
+            opacity: 0; /* For centered modals */
+        }
+
+        /* Specific styles for centered modals when visible */
+        .modal:not(#settings-modal).visible .modal-content {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* --- Settings Sidebar Specific Styles --- */
+        #settings-modal {
+            /* This div itself acts as the backdrop */
+            background-color: rgba(0, 0, 0, 0.75); /* Explicit backdrop color for sidebar */
+        }
+        body.light-theme #settings-modal {
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        #settings-modal .modal-content { /* This is the actual sliding panel */
+            position: fixed; /* Fixed to the viewport */
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 320px; /* Fixed width for the sidebar */
+            max-width: 90%; /* Ensure it doesn't overflow on small mobile */
+            height: 100vh; /* Full viewport height */
+            border-radius: 0; /* No rounded corners for a sidebar */
+            border-right: 1px solid var(--modal-border); /* Border on the right edge */
+            border-top: none; /* Remove top border */
+            border-bottom: none; /* Remove bottom border */
+            border-left: none; /* Remove left border */
+            padding: 0; /* No padding on the panel itself, content handles it */
+            box-shadow: var(--box-shadow-md); /* Keep shadow */
+            
+            transform: translateX(-100%); /* Start off-screen to the left */
+            transition: transform 0.3s ease-out, background-color 0.3s, border-color 0.3s;
+            opacity: 1; /* Always visible once slid in, controlled by transform */
+
+            display: flex; /* Flex container for header and content */
+            flex-direction: column;
+        }
+
+        #settings-modal.visible .modal-content {
+            transform: translateX(0); /* Slide into view */
+        }
+
+        #settings-modal .modal-header {
+            padding: 24px; /* Internal padding for sidebar header */
+            border-bottom: 1px solid var(--modal-border);
+            flex-shrink: 0; /* Prevent header from shrinking */
+        }
+
+        #settings-modal .sidebar-content {
+            flex-grow: 1; /* Allow content to grow and scroll */
+            overflow-y: auto; /* Enable scrolling for settings content */
+            padding: 24px; /* Internal padding for sidebar content */
+            max-height: none; /* Remove previous max-height constraint */
+        }
+
+        #settings-modal .sidebar-section {
+            margin-bottom: 25px;
+        }
+
+        #settings-modal .sidebar-section h3 {
+            font-size: 15px;
+            margin-bottom: 12px;
+            color: var(--accent-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--border-color); /* Subtle separator */
+        }
+
+        /* Styling for buttons within Settings/Export modals */
+        #settings-modal .sidebar-button, #export-modal .sidebar-button {
+            display: flex;
+            width: 100%;
+            padding: 10px 15px;
+            margin-bottom: 6px;
+            background-color: var(--header-bg);
+            color: var(--text-color);
+            border: none;
+            border-radius: var(--border-radius-sm);
+            text-align: left;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500; /* Slightly less bold */
+            transition: all 0.2s ease-in-out;
+            align-items: center;
+            gap: 10px;
+            box-shadow: var(--box-shadow-sm); /* Subtle shadow for interactive items */
+        }
+
+        #settings-modal .sidebar-button:hover, #export-modal .sidebar-button:hover {
+            background-color: var(--button-bg); /* Use primary button hover color */
+            color: white; /* Ensure text turns white on hover */
+            transform: translateY(-2px); /* Slight lift */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+        }
+        body.light-theme #settings-modal .sidebar-button:hover {
+            color: white;
+        }
+
+        #settings-modal .sidebar-button.active {
+            background-color: var(--button-bg);
+            color: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        /* Specific stylish background for export buttons (override default sidebar-button) */
+        #export-modal .sidebar-button {
+            background: linear-gradient(135deg, var(--export-button-bg1), var(--export-button-bg2));
+            color: white;
+            border: none;
+            box-shadow: var(--box-shadow-sm);
+            font-weight: 600;
+            justify-content: center; /* Center text and icon */
+            padding: 12px 20px; /* More prominent padding */
+            font-size: 15px;
+            gap: 12px;
+        }
+
+        #export-modal .sidebar-button:hover {
+            background: linear-gradient(135deg, var(--export-button-hover1), var(--export-button-hover2));
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+            transform: translateY(-2px);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 28px; /* Larger close icon */
+            cursor: pointer;
+            padding: 5px;
+            line-height: 1;
+            transition: color 0.2s, background-color 0.2s;
+            border-radius: var(--border-radius-sm);
+        }
+        .modal-close:hover {
+            color: var(--accent-color);
+            background-color: rgba(255, 255, 255, 0.08); /* Subtle hover for close */
+        }
+        body.light-theme .modal-close:hover {
+            background-color: rgba(0, 0, 0, 0.08);
+        }
+
+        /* --- Main Layout Components --- */
+        .hamburger {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 24px; /* Larger hamburger */
+            cursor: pointer;
+            padding: 8px 10px;
+            margin-right: 12px;
+            display: flex; /* Always flex, visibility handled by media query */
+            align-items: center;
+            justify-content: center;
+            width: 48px; /* Standardize size */
+            height: 48px;
+            border-radius: var(--border-radius-sm);
+            transition: background-color 0.2s;
+        }
+
+        .hamburger:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        body.light-theme .hamburger:hover {
+             background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Navbar Styles */
+        .navbar {
+            background-color: var(--header-bg);
+            padding: 0 15px;
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            align-items: center;
+            height: 60px; /* Slightly taller */
+            flex-shrink: 0;
+            transition: background-color 0.3s, border-color 0.3s;
+            /* Subtle gradient for depth */
+            background: linear-gradient(to right, var(--header-bg), color-mix(in srgb, var(--header-bg) 95%, black));
+        }
+        body.light-theme .navbar {
+             background: linear-gradient(to right, var(--header-bg), color-mix(in srgb, var(--header-bg) 95%, white));
+        }
+
+        /* Nav Tab Styling */
+        .nav-tabs {
+            display: flex; /* Default for mobile */
+            flex: 1;
+            overflow-x: auto;
+            scrollbar-width: none;
+            margin-left: 12px; /* Space from hamburger on mobile */
+        }
+
+        .nav-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .nav-tab {
+            padding: 0 20px;
+            cursor: pointer;
+            background-color: var(--nav-tab-default-bg); /* Default green background */
+            border-right: 1px solid var(--border-color); /* Separator between tabs */
+            font-size: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s;
+            height: 100%;
+            white-space: nowrap;
+            color: white; /* Text and icon color for default and active */
+            box-shadow: none; /* No bottom border / underline */
+        }
+
+        .nav-tab:first-child {
+            border-left: 1px solid var(--border-color); /* Border on the left of the first tab */
+            border-top-left-radius: var(--border-radius-md); /* More rounded corners */
+            border-bottom-left-radius: var(--border-radius-md);
+        }
+        .nav-tab:last-child {
+            border-top-right-radius: var(--border-radius-md);
+            border-bottom-right-radius: var(--border-radius-md);
+        }
+
+        .nav-tab.active {
+            background-color: var(--nav-tab-active-bg); /* Active blue background */
+            color: white; /* Keep text white */
+        }
+
+        .nav-tab:hover {
+            background-color: var(--nav-tab-hover-bg); /* Slightly different green on hover */
+            color: white; /* Keep text white */
+        }
+        .nav-tab.active:hover { 
+            background-color: var(--nav-tab-active-bg); /* Active tab should retain its active blue color on hover */
+        }
+        /* Ensure the icon color remains white */
+        .nav-tab .icon {
+            color: white;
+        }
+
+
+        /* Editor Container */
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        /* Editor Layout - Desktop vs Mobile */
+        .editor-container {
+            flex: 1;
+            display: flex;
+            min-height: 0;
+            position: relative;
+            /* NEW: Add gap for spacing between editors on desktop */
+            gap: 12px; /* Add some space between editor panes */
+            padding: 12px; /* Add padding around the container to match the gap */
+            background-color: var(--bg-color); /* Ensure background fills gaps */
+        }
+
+        .editor-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background-color: var(--editor-bg);
+            transition: background-color 0.3s;
+            border-radius: var(--border-radius-md); /* Apply border radius to panes */
+            border: 1px solid var(--border-color); /* Add a border around each pane */
+            box-shadow: var(--box-shadow-sm); /* Soft shadow for each editor pane */
+        }
+
+        @media (max-width: 768px) {
+            .editor-pane {
+                display: none;
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                border: none; /* No individual pane border on mobile, handled by active state */
+                border-radius: 0;
+                box-shadow: none;
+            }
+            .editor-pane.active {
+                display: flex;
+            }
+
+            /* Mobile nav tab styling - MORE prominent */
+            .nav-tab {
+                padding: 0 28px; /* Increased horizontal padding for mobile */
+                font-size: 17px; /* Larger font for mobile */
+                gap: 12px; /* More space between icon and text */
+            }
+            .nav-tab .icon {
+                font-size: 22px; /* Larger icon on mobile */
+            }
+        }
+
+        /* Editor Header with Tools */
+        .editor-header {
+            background-color: var(--header-bg);
+            padding: 10px 15px; /* More padding */
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+            transition: background-color 0.3s, border-color 0.3s;
+            border-top-left-radius: var(--border-radius-md); /* Match pane border-radius */
+            border-top-right-radius: var(--border-radius-md);
+        }
+        @media (max-width: 768px) {
+            .editor-header { /* No rounded corners on mobile as pane doesn't have them */
+                border-radius: 0;
+            }
+        }
+
+
+        .editor-tools {
+            display: flex;
+            gap: 6px; /* Smaller gap for smaller buttons */
+        }
+
+        .editor-tool {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            padding: 6px; /* Reduced padding */
+            border-radius: var(--border-radius-sm);
+            transition: all 0.2s ease-in-out;
+            display: flex;
+            flex-direction: column; /* Icon above, text below */
+            align-items: center;
+            gap: 2px; /* Small gap between icon and text */
+            min-width: 45px; /* Ensure minimum width for alignment */
+            max-width: 60px; /* Prevent too wide */
+            text-align: center;
+        }
+
+        .editor-tool span:first-child { /* Icon */
+            font-size: 16px; /* Icon size */
+            line-height: 1; /* Prevent extra space */
+            margin-bottom: 2px;
+        }
+        .editor-tool span:last-child { /* Text */
+            font-size: 10px; /* Smaller text */
+            font-weight: 500;
+            line-height: 1.2;
+        }
+
+        /* Specific styling for Copy, Paste, Clear, Undo, Redo, Save buttons */
+        .editor-tool[data-action="copy"],
+        .editor-tool[data-action="paste"],
+        .editor-tool[data-action="clear"],
+        .editor-tool[data-action="undo"],
+        .editor-tool[data-action="redo"],
+        .editor-tool[data-action="save-local"] {
+            background-color: var(--editor-tool-utility-bg); /* A solid, slightly darker background */
+            color: var(--text-color); /* Maintain text color */
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+        }
+
+        .editor-tool:hover {
+            background-color: var(--button-bg); /* Highlight background */
+            color: white; /* Text color change on hover */
+            transform: translateY(-1px); /* Slight lift */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        body.light-theme .editor-tool:hover {
+             color: white; /* Ensure text color changes for light theme buttons */
+        }
+
+        .editor-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+        }
+
+        /* Editor content wrapper for line numbers */
+        .editor-content-wrapper {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .line-numbers-gutter {
+            width: 45px; /* Slightly wider for line numbers */
+            padding: 15px 8px 15px 12px; /* Adjusted padding */
+            background-color: var(--line-number-bg);
+            border-right: 1px solid var(--border-color);
+            color: var(--line-number-color);
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: var(--font-size, 14px); /* Use CSS var for dynamic update */
+            line-height: var(--line-height, 1.6); /* Use CSS var */
+            text-align: right;
+            flex-shrink: 0;
+            user-select: none;
+            pointer-events: none;
+            overflow-y: scroll;
+            scrollbar-width: none;
+            transition: background-color 0.3s, border-color 0.3s, color 0.3s;
+            border-bottom-left-radius: var(--border-radius-md); /* Match pane border-radius */
+        }
+        @media (max-width: 768px) {
+            .line-numbers-gutter { /* No rounded corners on mobile as pane doesn't have them */
+                border-bottom-left-radius: 0;
+            }
+        }
+        .line-numbers-gutter::-webkit-scrollbar { display: none; }
+
+        /* Editor textarea styles */
+        .editor {
+            flex: 1;
+            padding: 15px 15px 15px 10px !important; /* Adjusted padding */
+            background-color: var(--editor-bg) !important;
+            color: var(--text-color) !important;
+            border: none !important;
+            resize: none;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: var(--font-size, 14px); /* Use CSS var for dynamic update */
+            line-height: var(--line-height, 1.6); /* Use CSS var */
+            tab-size: 2;
+            overflow: auto;
+            caret-color: var(--text-color) !important;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            transition: background-color 0.3s, color 0.3s;
+            border-bottom-right-radius: var(--border-radius-md); /* Match pane border-radius */
+        }
+        @media (max-width: 768px) {
+            .editor { /* No rounded corners on mobile as pane doesn't have them */
+                border-bottom-right-radius: 0;
+            }
+        }
+
+        .editor:focus {
+            outline: 1px solid var(--focus-outline-color) !important;
+            outline-offset: -1px;
+        }
+        
+        /* When line numbers are toggled off */
+        .editor-pane.no-line-numbers .line-numbers-gutter {
+            display: none;
+        }
+        .editor-pane.no-line-numbers .editor {
+            padding-left: 15px !important; /* Reset padding if gutter is hidden */
+            border-bottom-left-radius: var(--border-radius-md); /* Apply to editor directly */
+        }
+        @media (max-width: 768px) {
+            .editor-pane.no-line-numbers .editor {
+                border-bottom-left-radius: 0;
+            }
+        }
+
+
+        /* Controls */
+        .controls {
+            display: flex;
+            justify-content: center;
+            padding: 12px 0; /* More padding */
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+            background-color: var(--header-bg);
+            transition: background-color 0.3s, border-color 0.3s;
+            border-bottom-left-radius: var(--border-radius-md); /* Match container radius */
+            border-bottom-right-radius: var(--border-radius-md); /* Match container radius */
+            margin: 0 12px 12px 12px; /* Margin to contain it within main background */
+            box-shadow: var(--box-shadow-sm); /* Soft shadow */
+            /* Add subtle gradient for depth, similar to navbar */
+            background: linear-gradient(to right, var(--header-bg), color-mix(in srgb, var(--header-bg) 95%, black));
+        }
+        body.light-theme .controls {
+            background: linear-gradient(to right, var(--header-bg), color-mix(in srgb, var(--header-bg) 95%, white));
+        }
+        @media (max-width: 768px) {
+            .controls {
+                /* Remove "large black box" effect */
+                background-color: var(--bg-color); /* Match main background */
+                padding: 8px 0; /* Reduced vertical padding for less space */
+                border-radius: 0;
+                margin: 0;
+                box-shadow: none; /* Remove shadow for a flatter look */
+                border-top: none; /* Remove border top if blending with background */
+            }
+            #run-btn {
+                padding: 10px 25px; /* Slightly reduced padding for a more compact button */
+                font-size: 14px; /* Slightly smaller font for mobile */
+            }
+        }
+
+        #run-btn {
+            background-color: var(--button-bg);
+            color: white;
+            border: none;
+            padding: 12px 30px; /* More prominent */
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s ease-in-out;
+            box-shadow: var(--box-shadow-sm);
+        }
+
+        #run-btn:hover {
+            background-color: var(--button-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+        }
+
+        #run-btn svg {
+            width: 18px; /* Slightly larger icon */
+            height: 18px;
+            fill: currentColor;
+        }
+
+        /* Output Container */
+        .output-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background-color: white;
+            position: relative;
+            border-top: 1px solid var(--border-color);
+            border-bottom-left-radius: var(--border-radius-md); /* Match container radius */
+            border-bottom-right-radius: var(--border-radius-md); /* Match container radius */
+            margin: 0 12px 12px 12px; /* Margin to contain it within main background */
+            box-shadow: var(--box-shadow-sm); /* Soft shadow */
+        }
+        @media (max-width: 768px) {
+            .output-container {
+                border-radius: 0;
+                margin: 0;
+                border-top: none; /* Remove border if it's right after controls and they blend */
+            }
+        }
+
+        .output-header {
+            background-color: var(--header-bg);
+            padding: 12px 18px; /* More padding */
+            font-size: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+            transition: background-color 0.3s, border-color 0.3s;
+            border-top-left-radius: var(--border-radius-md); /* Match container radius */
+            border-top-right-radius: var(--border-radius-md); /* Match container radius */
+        }
+        @media (max-width: 768px) {
+            .output-header {
+                border-radius: 0;
+            }
+        }
+
+        .output-header .icon {
+            margin-right: 12px;
+            color: var(--accent-color);
+        }
+
+        #output-frame {
+            flex: 1;
+            border: none;
+            background-color: white;
+            overflow: auto;
+            border-bottom-left-radius: var(--border-radius-md); /* Match container radius */
+            border-bottom-right-radius: var(--border-radius-md); /* Match container radius */
+        }
+        @media (max-width: 768px) {
+            #output-frame {
+                border-radius: 0;
+            }
+        }
+
+        /* Settings Toggle (Floating Button) */
+        .settings-toggle {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background-color: var(--button-bg);
+            color: white;
+            border: none;
+            width: 50px; /* Larger */
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            box-shadow: var(--box-shadow-md); /* More prominent shadow */
+            transition: all 0.2s ease-in-out;
+            font-size: 22px; /* Larger icon */
+        }
+
+        .settings-toggle:hover {
+            background-color: var(--button-hover);
+            transform: translateY(-3px) scale(1.05); /* More pronounced lift/scale */
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--toast-bg);
+            color: white;
+            padding: 14px 28px; /* More padding */
+            border-radius: var(--border-radius-sm);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: var(--box-shadow-sm);
+            opacity: 0;
+            transition: opacity 0.3s;
+            max-width: 90%;
+            text-align: center;
+            font-size: 15px;
+        }
+
+        .toast.visible {
+            opacity: 1;
+        }
+
+        /* Scrollbar styling for Webkit browsers */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--editor-bg);
+            border-radius: var(--border-radius-sm);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: var(--border-radius-sm);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #777;
+        }
+
+        /* Scrollbar for modal content */
+        #settings-modal .sidebar-content::-webkit-scrollbar-track {
+            background: var(--modal-content-bg);
+        }
+        #settings-modal .sidebar-content::-webkit-scrollbar-thumb {
+            background: #666;
+        }
+        #settings-modal .sidebar-content::-webkit-scrollbar-thumb:hover {
+            background: #888;
+        }
+
+        /* Responsive adjustments */
+        @media (min-width: 769px) {
+            /* Desktop Hamburger Button Refinement */
+            .hamburger {
+                width: 40px; /* Slightly smaller */
+                height: 40px; /* Slightly smaller */
+                padding: 6px 8px; /* Reduced padding */
+                margin-right: 8px; /* Reduced margin */
+            }
+            .hamburger:hover {
+                background-color: rgba(255, 255, 255, 0.05); /* More subtle hover on dark */
+            }
+            body.light-theme .hamburger:hover {
+                background-color: rgba(0, 0, 0, 0.03); /* More subtle hover on light */
+            }
+
+            .editor-pane {
+                border-right: none; /* No vertical border between panes */
+                border-left: none; /* No vertical border between panes */
+            }
+            .editor-pane:first-child {
+                border-top-left-radius: var(--border-radius-md);
+                border-bottom-left-radius: var(--border-radius-md);
+            }
+            .editor-pane:last-child {
+                border-top-right-radius: var(--border-radius-md);
+                border-bottom-right-radius: var(--border-radius-md);
+            }
+            /* Hide nav tabs in desktop mode */
+            .nav-tabs {
+                display: none;
+            }
+
+            /* Show hamburger button in desktop mode */
+            .hamburger {
+                display: flex; /* Override display: none from global rules */
+            }
+            /* Undo, Redo, Clear, Save buttons are now always visible by default (no desktop-specific hide rule) */
+        }
+
+        /* Fullscreen output mode */
+        body.fullscreen-output {
+            overflow: auto;
+            height: auto;
+            display: block;
+        }
+        body.fullscreen-output .main-content {
+            height: auto;
+            min-height: 100vh;
+        }
+        body.fullscreen-output .output-container {
+            position: static;
+            height: auto;
+            min-height: calc(100vh - 60px); /* Navbar height */
+            border-top: none;
+            margin: 0; /* Remove margin in fullscreen */
+            border-radius: 0; /* No rounded corners in fullscreen */
+        }
+        body.fullscreen-output #output-frame {
+            position: static;
+            height: auto;
+            min-height: calc(100vh - 60px - 50px); /* Navbar + output header height */
+            border-radius: 0;
+        }
+        body.fullscreen-output .editor-container,
+        body.fullscreen-output .controls {
+            display: none;
+        }
+        
+        .fullscreen-btn {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px; /* More gap */
+            font-size: 14px; /* Slightly larger text */
+            transition: color 0.2s;
+            padding: 8px 12px;
+            border-radius: var(--border-radius-sm);
+        }
+        
+        .fullscreen-btn:hover {
+            color: var(--accent-color);
+            background-color: rgba(255, 255, 255, 0.08); /* Subtle hover for button */
+        }
+        body.light-theme .fullscreen-btn:hover {
+            background-color: rgba(0, 0, 0, 0.08);
+        }
+
+        .fullscreen-btn.exit-fullscreen {
+            color: #dc3545;
+            font-weight: 600;
+        }
+        .fullscreen-btn.exit-fullscreen:hover {
+            color: #ff6060;
+        }
+        
+        /* Disable body scrolling when modal is open */
+        body.no-scroll {
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <!-- Save File Modal (filename input for combined HTML export) -->
+    <div class="modal" id="save-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>Save File</span>
+                <button class="modal-close" data-modal-id="save-modal">×</button>
+            </div>
+            <input type="text" id="filename-input" class="modal-input" placeholder="Enter filename (e.g., my-project.html)" value="codeplayer-export.html">
+            <div class="modal-buttons">
+                <button class="modal-button secondary" data-modal-id="save-modal">Cancel</button>
+                <button class="modal-button primary" id="confirm-save">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Open in Browser Modal -->
+    <div class="modal" id="browser-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>Open in Browser</span>
+                <button class="modal-close" data-modal-id="browser-modal">×</button>
+            </div>
+            <div class="modal-body">This will open your code in a new browser tab. Continue?</div>
+            <div class="modal-buttons">
+                <button class="modal-button secondary" data-modal-id="browser-modal">Cancel</button>
+                <button class="modal-button primary" id="confirm-browser">Open</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Options Modal -->
+    <div class="modal" id="export-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>Export Options</span>
+                <button class="modal-close" data-modal-id="export-modal">×</button>
+            </div>
+            <div class="modal-body">
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button class="sidebar-button" id="export-html-combined">
+                        <span>📦</span> Export Combined HTML
+                    </button>
+                    <button class="sidebar-button" id="export-css-single">
+                        <span>🎨</span> Export as CSS
+                    </button>
+                    <button class="sidebar-button" id="export-js-single">
+                        <span>⚙️</span> Export as JavaScript
+                    </button>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-button secondary" data-modal-id="export-modal">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal (now functions as a sliding sidebar) -->
+    <div class="modal" id="settings-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="sidebar-title">CodePlayer Settings</div>
+                <button class="modal-close" data-modal-id="settings-modal">×</button>
+            </div>
+            <div class="sidebar-content">
+                <div class="sidebar-section">
+                    <h3><span>📁</span> File Operations</h3>
+                    <button class="sidebar-button" id="open-file">
+                        <span>📂</span> Open File
+                    </button>
+                    <button class="sidebar-button" id="export-file">
+                        <span>📤</span> Export Options
+                    </button>
+                    <button class="sidebar-button" id="open-browser">
+                        <span>🌐</span> Open in Browser
+                    </button>
+                </div>
+                <div class="sidebar-section">
+                    <h3><span>✏️</span> Editor Settings</h3>
+                    <button class="sidebar-button" id="toggle-wrap">
+                        <span>↩️</span> Toggle Word Wrap
+                    </button>
+                    <button class="sidebar-button" id="increase-font">
+                        <span>🔍</span> Increase Font Size
+                    </button>
+                    <button class="sidebar-button" id="decrease-font">
+                        <span>🔎</span> Decrease Font Size
+                    </button>
+                    <button class="sidebar-button" id="reset-font">
+                        <span>🔤</span> Reset Font Size
+                    </button>
+                    <button class="sidebar-button" id="toggle-line-numbers">
+                        <span>🔢</span> Toggle Line Numbers
+                    </button>
+                </div>
+                <div class="sidebar-section">
+                    <h3><span>⚙️</span> Player Settings</h3>
+                    <button class="sidebar-button" id="auto-run">
+                        <span>🔄</span> Toggle Auto-Run
+                    </button>
+                    <button class="sidebar-button" id="theme-dark">
+                        <span>🌙</span> Dark Theme
+                    </button>
+                    <button class="sidebar-button" id="theme-light">
+                        <span>☀️</span> Light Theme
+                    </button>
+                    <button class="sidebar-button" id="toggle-console">
+                        <span>📋</span> Toggle Console
+                    </button>
+                    <button class="sidebar-button" id="clear-console">
+                        <span>🧹</span> Clear Console
+                    </button>
+                </div>
+                <div class="sidebar-section">
+                    <h3><span>🔗</span> Share</h3>
+                    <button class="sidebar-button" id="copy-link">
+                        <span>📋</span> Copy Shareable Link
+                    </button>
+                    <!-- ZIP Download removed as per request -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="main-content">
+        <!-- Navbar -->
+        <nav class="navbar">
+            <button class="hamburger" id="hamburger">☰</button>
+            <div class="nav-tabs">
+                <div class="nav-tab active" data-target="html-editor">
+                    <span class="icon">📄</span>
+                    <span>HTML</span>
+                </div>
+                <div class="nav-tab" data-target="css-editor">
+                    <span class="icon">🎨</span>
+                    <span>CSS</span>
+                </div>
+                <div class="nav-tab" data-target="js-editor">
+                    <span class="icon">⚙️</span>
+                    <span>JavaScript</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Editor Container -->
+        <div class="container">
+            <div class="editor-container">
+                <div class="editor-pane active" id="html-editor">
+                    <div class="editor-header">
+                        <div class="editor-title">
+                            <span class="icon">📄</span>
+                            <span>HTML</span>
+                        </div>
+                        <div class="editor-tools">
+                            <button class="editor-tool" data-action="undo" data-editor="html">
+                                <span>↩️</span>
+                                <span>Undo</span>
+                            </button>
+                            <button class="editor-tool" data-action="redo" data-editor="html">
+                                <span>↪️</span>
+                                <span>Redo</span>
+                            </button>
+                            <button class="editor-tool" data-action="copy" data-editor="html">
+                                <span>📋</span>
+                                <span>Copy</span>
+                            </button>
+                            <button class="editor-tool" data-action="paste" data-editor="html">
+                                <span>📋</span>
+                                <span>Paste</span>
+                            </button>
+                            <button class="editor-tool" data-action="clear" data-editor="html">
+                                <span>🧹</span>
+                                <span>Clear</span>
+                            </button>
+                            <button class="editor-tool" data-action="save-local" data-editor="html">
+                                <span>💾</span>
+                                <span>Save</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="editor-content-wrapper">
+                        <div class="line-numbers-gutter" id="html-line-numbers"></div>
+                        <textarea id="html-code" class="editor" spellcheck="false" placeholder="Enter HTML code here"></textarea>
+                    </div>
+                </div>
+
+                <div class="editor-pane" id="css-editor">
+                    <div class="editor-header">
+                        <div class="editor-title">
+                            <span class="icon">🎨</span>
+                            <span>CSS</span>
+                        </div>
+                        <div class="editor-tools">
+                            <button class="editor-tool" data-action="undo" data-editor="css">
+                                <span>↩️</span>
+                                <span>Undo</span>
+                            </button>
+                            <button class="editor-tool" data-action="redo" data-editor="css">
+                                <span>↪️</span>
+                                <span>Redo</span>
+                            </button>
+                            <button class="editor-tool" data-action="copy" data-editor="css">
+                                <span>📋</span>
+                                <span>Copy</span>
+                            </button>
+                            <button class="editor-tool" data-action="paste" data-editor="css">
+                                <span>📋</span>
+                                <span>Paste</span>
+                            </button>
+                            <button class="editor-tool" data-action="clear" data-editor="css">
+                                <span>🧹</span>
+                                <span>Clear</span>
+                            </button>
+                            <button class="editor-tool" data-action="save-local" data-editor="css">
+                                <span>💾</span>
+                                <span>Save</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="editor-content-wrapper">
+                        <div class="line-numbers-gutter" id="css-line-numbers"></div>
+                        <textarea id="css-code" class="editor" spellcheck="false" placeholder="Enter CSS code here"></textarea>
+                    </div>
+                </div>
+
+                <div class="editor-pane" id="js-editor">
+                    <div class="editor-header">
+                        <div class="editor-title">
+                            <span class="icon">⚙️</span>
+                            <span>JavaScript</span>
+                        </div>
+                        <div class="editor-tools">
+                            <button class="editor-tool" data-action="undo" data-editor="js">
+                                <span>↩️</span>
+                                <span>Undo</span>
+                            </button>
+                            <button class="editor-tool" data-action="redo" data-editor="js">
+                                <span>↪️</span>
+                                <span>Redo</span>
+                            </button>
+                            <button class="editor-tool" data-action="copy" data-editor="js">
+                                <span>📋</span>
+                                <span>Copy</span>
+                            </button>
+                            <button class="editor-tool" data-action="paste" data-editor="js">
+                                <span>📋</span>
+                                <span>Paste</span>
+                            </button>
+                            <button class="editor-tool" data-action="clear" data-editor="js">
+                                <span>🧹</span>
+                                <span>Clear</span>
+                            </button>
+                            <button class="editor-tool" data-action="save-local" data-editor="js">
+                                <span>💾</span>
+                                <span>Save</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="editor-content-wrapper">
+                        <div class="line-numbers-gutter" id="js-line-numbers"></div>
+                        <textarea id="js-code" class="editor" spellcheck="false" placeholder="Enter JavaScript code here"></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button id="run-btn">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                    </svg>
+                    Run Code (Ctrl+Enter)
+                </button>
+            </div>
+            
+            <div class="output-container">
+                <div class="output-header">
+                    <span class="icon">📊</span>
+                    <span>Live Output</span>
+                    <button class="fullscreen-btn" id="fullscreen-output">
+                        <span>⛶</span> Fullscreen
+                    </button>
+                </div>
+                <iframe id="output-frame"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <button class="settings-toggle" id="settings-toggle">⚙️</button>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Initialize variables
+            let autoRun = false;
+            let currentTheme = 'dark'; // Default theme
+            let fontSize = 14;
+            let currentFilename = 'codeplayer-export.html'; // Still used for combined export filename
+            let showLineNumbers = true; // Default to true for better UX
+            let showConsole = false; // Note: Console functionality not fully implemented in current base.
+            let autoRunTimeout; // For debouncing auto-run
+            let saveToLocalStorageTimeout; // Debounce for saving to local storage
+
+            // --- Modal/Sidebar Management ---
+            function showModal(modalId) {
+                $(modalId).addClass('visible').show(); // show() is needed for initial display before transition
+                // For settings modal, specifically ensure .modal-content animates from left
+                if (modalId === '#settings-modal') {
+                    // This class is added to trigger the transform: translateX(0)
+                    $('#settings-modal .modal-content').addClass('slide-in');
+                } else {
+                    // For other modals, ensure they start from their initial position for animation
+                    $(modalId).find('.modal-content').css({transform: 'translateY(-20px)', opacity: 0});
+                    // This timeout allows the browser to render the initial state before applying the final state,
+                    // triggering the CSS transition.
+                    setTimeout(() => $(modalId).find('.modal-content').css({transform: 'translateY(0)', opacity: 1}), 10);
+                }
+                if (window.innerWidth <= 768) {
+                    $('body').addClass('no-scroll');
+                }
+            }
+
+            function hideModal(modalId) {
+                if (modalId === '#settings-modal') {
+                    $('#settings-modal .modal-content').removeClass('slide-in');
+                }
+                $(modalId).removeClass('visible');
+                // Use setTimeout to ensure transition finishes before display:none
+                setTimeout(() => {
+                    $(modalId).hide();
+                    // Only remove no-scroll if NO modals are visible
+                    if ($('.modal.visible').length === 0) {
+                        $('body').removeClass('no-scroll');
+                    }
+                }, 300); // Match CSS transition duration
+            }
+
+            // Close modal by clicking 'x' button inside it
+            $('.modal-close').click(function() {
+                const modalId = $(this).data('modal-id');
+                hideModal(`#${modalId}`);
+            });
+
+            // Close any modal by clicking on its backdrop
+            $('.modal').click(function(event) {
+                // If the click target is the modal backdrop itself (not its content)
+                if ($(event.target).hasClass('modal')) {
+                    hideModal(`#${$(this).attr('id')}`);
+                }
+            });
+
+            // --- UI Element Event Handlers ---
+            // Hamburger and Settings cog to open Settings Modal (now sidebar)
+            $('#hamburger').click(() => showModal('#settings-modal'));
+            $('#settings-toggle').click(() => showModal('#settings-modal'));
+
+            // Tab switching functionality
+            $('.nav-tab').click(function() {
+                const target = $(this).data('target');
+                $('.nav-tab').removeClass('active');
+                $(this).addClass('active');
+                
+                // For mobile view only, hide/show editor panes
+                if (window.innerWidth <= 768) {
+                    $('.editor-pane').removeClass('active');
+                    $(`#${target}`).addClass('active');
+                } else {
+                    // On desktop, ensure all panes are always visible
+                    $('.editor-pane').addClass('active');
+                }
+            });
+
+            // Save File Modal handling (Triggered by confirm-save button only)
+            $('#confirm-save').click(function() {
+                currentFilename = $('#filename-input').val() || 'codeplayer-export.html';
+                if (!currentFilename.endsWith('.html')) {
+                    currentFilename += '.html';
+                }
+                downloadCombinedHTML(); // This saves the full project as HTML
+                hideModal('#save-modal');
+            });
+            
+            // Open in browser modal
+            $('#open-browser').click(function() {
+                hideModal('#settings-modal'); // Hide settings first
+                showModal('#browser-modal');
+            });
+            // Changed from #cancel-browser to match data-modal-id
+            $('#browser-modal .modal-button.secondary').click(() => hideModal('#browser-modal'));
+            $('#confirm-browser').click(function() {
+                openInBrowser();
+                hideModal('#browser-modal');
+            });
+            
+            // Export modal
+            $('#export-file').click(function() {
+                hideModal('#settings-modal'); // Hide settings first
+                showModal('#export-modal');
+            });
+            // Changed from #cancel-export to match data-modal-id
+            $('#export-modal .modal-button.secondary').click(() => hideModal('#export-modal'));
+            
+            // Export Combined HTML
+            $('#export-html-combined').click(function() {
+                downloadCombinedHTML();
+                hideModal('#export-modal');
+            });
+            
+            // Export Single CSS/JS
+            $('#export-css-single').click(function() {
+                saveSpecificEditorFile('css', true); // Pass true for isDownload
+                hideModal('#export-modal');
+            });
+            
+            $('#export-js-single').click(function() {
+                saveSpecificEditorFile('js', true); // Pass true for isDownload
+                hideModal('#export-modal');
+            });
+
+            // Fullscreen output
+            $('#fullscreen-output').click(function() {
+                const isFullscreen = $('body').hasClass('fullscreen-output');
+                if (isFullscreen) {
+                    $('body').removeClass('fullscreen-output');
+                    $(this).removeClass('exit-fullscreen').html('<span>⛶</span> Fullscreen');
+                    showToast('Exited fullscreen mode.');
+                } else {
+                    $('body').addClass('fullscreen-output');
+                    $(this).addClass('exit-fullscreen').html('<span>⛌</span> Close'); // Change icon/text
+                    showToast('Entered fullscreen mode. Press ESC or click "Close" to exit.');
+                }
+            });
+            
+            $(document).keydown(function(e) {
+                if (e.key === 'Escape' && $('body').hasClass('fullscreen-output')) {
+                    $('body').removeClass('fullscreen-output');
+                    $('#fullscreen-output').removeClass('exit-fullscreen').html('<span>⛶</span> Fullscreen');
+                }
+            });
+            
+            // Handle Enter key in filename input
+            $('#filename-input').keypress(function(e) {
+                if (e.which === 13) { // Enter key
+                    $('#confirm-save').click();
+                }
+            });
+
+            // --- Editor Tools Functionality ---
+            $('[data-action="copy"]').click(function() {
+                const editor = $(this).data('editor');
+                const text = $(`#${editor}-code`).val();
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast(`${editor.toUpperCase()} code copied to clipboard!`);
+                }).catch(err => {
+                    showToast('Failed to copy text', 'error');
+                    console.error('Copy failed:', err);
+                });
+            });
+            
+            // Paste button for direct paste into specific editor (does NOT auto-detect)
+            $('[data-action="paste"]').click(async function() {
+                const editor = $(this).data('editor');
+                try {
+                    const text = await navigator.clipboard.readText();
+                    $(`#${editor}-code`).val(text);
+                    updateLineNumbers(`${editor}-code`); // Update line numbers after paste
+                    saveEditorContentToLocalStorage(); // Save pasted content
+                    if (autoRun) runCode();
+                    showToast(`${editor.toUpperCase()} code pasted!`);
+                } catch (err) {
+                    showToast('Failed to paste. Please check clipboard permissions.', 'error');
+                    console.error('Paste failed:', err);
+                }
+            });
+            
+            $('[data-action="clear"]').click(function() {
+                const editor = $(this).data('editor');
+                $(`#${editor}-code`).val('');
+                updateLineNumbers(`${editor}-code`); // Update line numbers after clear
+                saveEditorContentToLocalStorage(); // Save cleared state
+                if (autoRun) runCode();
+                showToast(`${editor.toUpperCase()} editor cleared!`);
+            });
+
+            // New: Save button for individual editors (saves to local storage only)
+            $('[data-action="save-local"]').click(function() {
+                const editorType = $(this).data('editor');
+                // The actual save to localStorage is handled by input/paste events via debounce.
+                // This button just forces an immediate save.
+                saveEditorContentToLocalStorage(); 
+                showToast(`${editorType.toUpperCase()} code saved locally!`, 'success');
+            });
+
+            // New: Undo/Redo functionality for editors
+            $('[data-action="undo"]').click(function() {
+                const editorId = $(this).data('editor');
+                $(`#${editorId}-code`)[0].focus(); // Ensure editor is focused for execCommand
+                document.execCommand('undo');
+                updateLineNumbers(`${editorId}-code`);
+                saveEditorContentToLocalStorage();
+                if (autoRun) runCode();
+                showToast(`Undo operation performed in ${editorId.toUpperCase()}`);
+            });
+
+            $('[data-action="redo"]').click(function() {
+                const editorId = $(this).data('editor');
+                $(`#${editorId}-code`)[0].focus(); // Ensure editor is focused for execCommand
+                document.execCommand('redo');
+                updateLineNumbers(`${editorId}-code`);
+                saveEditorContentToLocalStorage();
+                if (autoRun) runCode();
+                showToast(`Redo operation performed in ${editorId.toUpperCase()}`);
+            });
+
+            // --- File Operations ---
+            $('#open-file').click(function() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.html,.css,.js,.txt'; // Accept common text formats
+                
+                hideModal('#settings-modal'); // Hide settings first
+                
+                input.onchange = async e => {
+                    const file = e.target.files[0];
+                    if (!file) {
+                        return;
+                    }
+                    currentFilename = file.name;
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(event) {
+                        const content = event.target.result;
+                        const extension = file.name.split('.').pop().toLowerCase();
+                        
+                        let detectedType = null;
+                        if (extension === 'html' || extension === 'htm') {
+                            detectedType = 'html';
+                        } else if (extension === 'css') {
+                            detectedType = 'css';
+                        } else if (extension === 'js') {
+                            detectedType = 'js';
+                        } else {
+                            detectedType = autoDetectFileType(content);
+                        }
+
+                        if (detectedType) {
+                            $(`#${detectedType}-code`).val(content);
+                            $('.nav-tab').removeClass('active');
+                            $(`.nav-tab[data-target="${detectedType}-editor"]`).addClass('active');
+                            
+                            if (window.innerWidth <= 768) {
+                                $('.editor-pane').removeClass('active');
+                                $(`#${detectedType}-editor`).addClass('active');
+                            }
+                            
+                            updateLineNumbers(`${detectedType}-code`); // Update line numbers after load
+                            saveEditorContentToLocalStorage(); // Save loaded content
+                            if (autoRun) runCode();
+                            showToast(`File "${file.name}" (${detectedType.toUpperCase()}) loaded successfully!`, 'success');
+                        } else {
+                            $('#html-code').val(content);
+                            $('.nav-tab').removeClass('active').first().addClass('active');
+                            if (window.innerWidth <= 768) {
+                                $('.editor-pane').removeClass('active').first().addClass('active');
+                            }
+                            updateLineNumbers('html-code'); // Update line numbers after load
+                            saveEditorContentToLocalStorage(); // Save loaded content
+                            showToast(`File "${file.name}" loaded into HTML editor (unknown format).`, 'info');
+                        }
+                    };
+                    
+                    reader.onerror = function() {
+                        showToast('Error reading file', 'error');
+                        console.error('File read error:', reader.error);
+                    };
+                    
+                    reader.readAsText(file);
+                };
+                
+                input.click();
+            });
+            
+            // Function to save content of a specific editor (HTML, CSS, JS)
+            // isDownload: true if triggered from Export, false if from editor's Save button (to local storage)
+            function saveSpecificEditorFile(editorType, isDownload) {
+                let content, filename, mimeType;
+                if (editorType === 'html') {
+                    content = $('#html-code').val();
+                    filename = 'index.html';
+                    mimeType = 'text/html';
+                } else if (editorType === 'css') {
+                    content = $('#css-code').val();
+                    filename = 'styles.css';
+                    mimeType = 'text/css';
+                } else if (editorType === 'js') {
+                    content = $('#js-code').val();
+                    filename = 'script.js';
+                    mimeType = 'text/javascript';
+                } else {
+                    showToast('Invalid editor type for save/export.', 'error');
+                    return;
+                }
+
+                if (isDownload) {
+                    try {
+                        const blob = new Blob([content], { type: mimeType });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        setTimeout(() => URL.revokeObjectURL(url), 100);
+                        showToast(`${editorType.toUpperCase()} file "${filename}" downloaded!`, 'success');
+                    } catch (err) {
+                        showToast(`Error downloading ${editorType.toUpperCase()} file.`, 'error');
+                        console.error('Download error:', err);
+                    }
+                } else {
+                    // This path is for editor's "Save" button, which saves to local storage
+                    saveEditorContentToLocalStorage(); // Already handles individual editor content
+                }
+            }
+
+            // Exports the combined HTML
+            function downloadCombinedHTML() {
+                const html = $('#html-code').val();
+                const css = $('#css-code').val();
+                const js = $('#js-code').val();
+                
+                const combinedCode = `<!DOCTYPE html>
+<html>
+<head>
+    <title>CodePlayer Export</title>
+    <style>${css}</style>
+</head>
+<body>
+    ${html}
+    <script>${js}<\/script>
+</body>
+</html>`;
+                
+                try {
+                    const blob = new Blob([combinedCode], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = currentFilename; // Uses the default or last set filename for combined export
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    setTimeout(() => URL.revokeObjectURL(url), 100);
+                    showToast(`Combined HTML "${currentFilename}" exported!`, 'success');
+                } catch (err) {
+                    showToast('Error exporting combined HTML', 'error');
+                    console.error('Export combined HTML error:', err);
+                }
+            }
+            
+            function openInBrowser() {
+                const html = $('#html-code').val();
+                const css = $('#css-code').val();
+                const js = $('#js-code').val();
+                
+                // Combine all code into one HTML file
+                const combinedCode = `<!DOCTYPE html>
+<html>
+<head>
+    <title>CodePlayer Output</title>
+    <style>${css}</style>
+</head>
+<body>
+    ${html}
+    <script>${js}<\/script>
+</body>
+</html>`;
+                
+                try {
+                    const blob = new Blob([combinedCode], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                    // Don't revoke the URL immediately as the new tab needs it
+                    setTimeout(() => URL.revokeObjectURL(url), 10000);
+                    showToast('Opened in new browser tab', 'info');
+                } catch (err) {
+                    showToast('Error opening in browser', 'error');
+                    console.error('Open in browser error:', err);
+                }
+            }
+            
+            function downloadAsZip() {
+                const html = $('#html-code').val();
+                const css = $('#css-code').val();
+                const js = $('#js-code').val();
+                
+                const zip = new JSZip();
+                zip.file("index.html", html);
+                zip.file("styles.css", css);
+                zip.file("script.js", js);
+                
+                zip.generateAsync({type:"blob"}).then(function(content) {
+                    const url = URL.createObjectURL(content);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'codeplayer-project.zip';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    setTimeout(() => URL.revokeObjectURL(url), 100);
+                    showToast('Project downloaded as ZIP', 'success');
+                }).catch(err => {
+                    showToast('Error downloading ZIP', 'error');
+                    console.error('ZIP download error:', err);
+                });
+            }
+
+            // --- Editor Settings ---
+            $('#toggle-wrap').click(function() {
+                const isWrapping = $('.editor').css('white-space') === 'pre-wrap';
+                $('.editor').css('white-space', isWrapping ? 'pre' : 'pre-wrap');
+                $(this).toggleClass('active', !isWrapping);
+                showToast(`Word wrap ${!isWrapping ? 'enabled' : 'disabled'}`);
+            });
+            
+            $('#increase-font').click(function() {
+                fontSize = Math.min(24, fontSize + 1);
+                // Update CSS variables for font size and line height
+                document.documentElement.style.setProperty('--font-size', `${fontSize}px`);
+                document.documentElement.style.setProperty('--line-height', `${(fontSize / 14) * 1.6}`); 
+                showToast(`Font size increased to ${fontSize}px`);
+                $('.editor').each(function() { updateLineNumbers($(this).attr('id')); }); // Re-render line numbers to fit
+            });
+            
+            $('#decrease-font').click(function() {
+                fontSize = Math.max(10, fontSize - 1);
+                document.documentElement.style.setProperty('--font-size', `${fontSize}px`);
+                document.documentElement.style.setProperty('--line-height', `${(fontSize / 14) * 1.6}`); 
+                showToast(`Font size decreased to ${fontSize}px`);
+                $('.editor').each(function() { updateLineNumbers($(this).attr('id')); }); // Re-render line numbers to fit
+            });
+            
+            $('#reset-font').click(function() {
+                fontSize = 14;
+                document.documentElement.style.setProperty('--font-size', `${fontSize}px`);
+                document.documentElement.style.setProperty('--line-height', '1.6'); 
+                showToast(`Font size reset to ${fontSize}px`);
+                $('.editor').each(function() { updateLineNumbers($(this).attr('id')); }); // Re-render line numbers to fit
+            });
+            
+            $('#toggle-line-numbers').click(function() {
+                showLineNumbers = !showLineNumbers;
+                $(this).toggleClass('active', showLineNumbers);
+                
+                $('.editor-pane').each(function() {
+                    $(this).toggleClass('no-line-numbers', !showLineNumbers);
+                });
+                showToast(`Line numbers ${showLineNumbers ? 'enabled' : 'disabled'}`);
+            });
+
+            // --- Player Settings ---
+            $('#auto-run').click(function() {
+                autoRun = !autoRun;
+                $(this).toggleClass('active', autoRun);
+                showToast(`Auto-run ${autoRun ? 'enabled' : 'disabled'}`);
+            });
+            
+            $('#theme-dark').click(function() {
+                currentTheme = 'dark';
+                applyTheme();
+                showToast('Dark theme activated');
+            });
+            
+            $('#theme-light').click(function() {
+                currentTheme = 'light';
+                applyTheme();
+                showToast('Light theme activated');
+            });
+            
+            $('#toggle-console').click(function() {
+                showConsole = !showConsole;
+                $(this).toggleClass('active', showConsole);
+                showToast(`Console ${showConsole ? 'enabled' : 'disabled'}`);
+            });
+            
+            $('#clear-console').click(function() {
+                showToast('Console cleared');
+            });
+            
+            $('#copy-link').click(function() {
+                // This is a dummy link, replace with actual logic if sharing via URL parameters
+                const shareLink = "https://example.com/codeplayer?html=" + encodeURIComponent($('#html-code').val()).substring(0, 100) + "... (Example link)";
+                navigator.clipboard.writeText(shareLink).then(() => {
+                    showToast('Shareable link copied to clipboard!');
+                }).catch(err => {
+                    showToast('Failed to copy link', 'error');
+                    console.error('Copy link failed:', err);
+                });
+            });
+            
+            // Removed download-zip click handler
+            
+            function applyTheme() {
+                if (currentTheme === 'light') {
+                    $('body').addClass('light-theme').removeClass('dark-theme');
+                } else {
+                    $('body').addClass('dark-theme').removeClass('light-theme');
+                }
+            }
+
+            // --- Code Execution ---
+            $('#run-btn').click(function() {
+                runCode();
+                showToast('Code executed successfully!');
+            });
+
+            // Auto-run on code changes and Ctrl+Enter
+            $('.editor').on('input', function() {
+                const editorId = $(this).attr('id');
+                updateLineNumbers(editorId); // Update line numbers immediately on input
+
+                if (autoRun) {
+                    clearTimeout(autoRunTimeout); // Clear previous timeout
+                    autoRunTimeout = setTimeout(runCode, 500); // Debounce
+                }
+
+                // Debounce save to local storage
+                clearTimeout(saveToLocalStorageTimeout);
+                saveToLocalStorageTimeout = setTimeout(saveEditorContentToLocalStorage, 1000); // Save after 1 second of no typing
+            }).on('scroll', function() { // Synchronize line numbers on editor scroll
+                const editorId = $(this).attr('id');
+                syncScroll(editorId);
+            }).keydown(function(e) {
+                if (e.ctrlKey && e.key === 'Enter') {
+                    e.preventDefault(); // Prevent new line in editor when pressing Ctrl+Enter
+                    runCode();
+                    showToast('Code executed successfully!');
+                }
+            });
+
+            function runCode() {
+                const html = $('#html-code').val();
+                const css = $('#css-code').val();
+                const js = $('#js-code').val();
+                
+                const frame = $('#output-frame')[0];
+                let frameDoc = frame.contentDocument || frame.contentWindow.document;
+                
+                // Clear previous content of the iframe to prevent old styles/scripts affecting new render
+                frameDoc.open();
+                frameDoc.write(''); // Clear content
+                frameDoc.close(); // Close immediately to ensure it's blank
+
+                // Re-get frameDoc after clearing, as it might become null/detached
+                frameDoc = frame.contentDocument || frame.contentWindow.document;
+
+                // Now write the new content
+                frameDoc.open();
+                frameDoc.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <style>${css}</style>
+                    </head>
+                    <body>
+                        ${html}
+                        <script>${js}<\/script>
+                    </body>
+                    </html>
+                `);
+                frameDoc.close();
+            }
+            
+            // --- Toast Notification ---
+            function showToast(message, type = 'info') {
+                const toast = $('#toast');
+                toast.removeClass('visible'); // Hide it first to allow re-showing quickly
+                toast.css('background-color', ''); // Reset background color to CSS variable
+                
+                toast.text(message);
+                
+                if (type === 'error') {
+                    toast.css('background-color', '#dc3545'); // Red for error
+                } else if (type === 'success') {
+                    toast.css('background-color', '#28a745'); // Green for success
+                } 
+
+                toast.addClass('visible');
+                
+                setTimeout(() => {
+                    toast.removeClass('visible');
+                }, 3000);
+            }
+
+            // --- Line Number Management ---
+            function updateLineNumbers(editorId) {
+                const editor = $(`#${editorId}`);
+                const gutter = $(`#${editorId.replace('-code', '')}-line-numbers`);
+                
+                const text = editor.val();
+                const lines = text.split('\n');
+                const numLines = Math.max(1, lines.length); // Ensure at least 1 line
+
+                let lineNumbersHtml = '';
+                for (let i = 1; i <= numLines; i++) {
+                    lineNumbersHtml += `${i}<br>`;
+                }
+                gutter.html(lineNumbersHtml);
+                
+                // Set initial state based on showLineNumbers flag
+                if (showLineNumbers) {
+                    gutter.show();
+                    editor.closest('.editor-pane').removeClass('no-line-numbers');
+                } else {
+                    gutter.hide();
+                    editor.closest('.editor-pane').addClass('no-line-numbers');
+                }
+                // Important for scroll synchronization, update the scroll position after content changes
+                syncScroll(editorId);
+            }
+
+            function syncScroll(editorId) {
+                const editor = $(`#${editorId}`);
+                const gutter = $(`#${editorId.replace('-code', '')}-line-numbers`);
+                // Only sync if gutter is visible
+                if (gutter.is(':visible')) {
+                    gutter.scrollTop(editor.scrollTop());
+                }
+            }
+
+            // --- Auto-Detect and Paste ---
+            function isHTML(text) {
+                const htmlTagRegex = /<\s*(html|head|body|div|p|span|a|img|ul|ol|li|h[1-6]|table|tr|td|form|input|button|style|script|link|meta|!DOCTYPE)\b[^>]*>/i;
+                const htmlAttributeRegex = /(?:id|class|src|href|alt|title|data-[a-z0-9-]+)\s*=\s*(['"]|$)/i;
+                return htmlTagRegex.test(text) || htmlAttributeRegex.test(text);
+            }
+
+            function isCSS(text) {
+                const cssSelectorRegex = /(?:[.#]?[a-zA-Z][a-zA-Z0-9_-]*\s*\{[^}]*\})|(?:@media|@keyframes|@font-face|@import|@charset)/i;
+                const cssPropertyRegex = /(?:font-size|color|background(?:-color)?|margin|padding|width|height|display|position|top|left|right|bottom|border|text-align|flex|grid|box-shadow|text-shadow|transform|transition|animation)\s*:/i;
+                return cssSelectorRegex.test(text) || cssPropertyRegex.test(text);
+            }
+
+            function isJS(text) {
+                if (isHTML(text) || isCSS(text)) return false; 
+                
+                const jsKeywordsRegex = /\b(?:function|var|let|const|return|if|else|for|while|switch|case|break|continue|try|catch|finally|class|extends|import|export|await|async|debugger|new|this|super|console\.(log|warn|error|info|debug)|document\.(getElementById|querySelector)|window\.(onload|addEventListener)|setTimeout|setInterval|fetch)\b/i;
+                const commonJsSyntaxRegex = /[\{\}\(\);=\[\]]|=>|\/\/|\/\*|\*\/|\.bind|\.call|\.apply|\.prototype|\.length|\.forEach|\.map|\.filter|\.reduce|\.addEventListener|\.querySelector|\.getElementById|\.innerHTML|\.value/g; 
+
+                return jsKeywordsRegex.test(text) || commonJsSyntaxRegex.test(text);
+            }
+
+            function autoDetectFileType(text) {
+                if (isHTML(text)) {
+                    return 'html';
+                } else if (isCSS(text)) {
+                    return 'css';
+                } else if (isJS(text)) {
+                    return 'js';
+                }
+                return null; // Not detected
+            }
+
+            // Central auto-paste function triggered on 'paste' event within any editor
+            $('.editor').on('paste', function(e) {
+                e.preventDefault(); // Prevent default paste behavior (which would paste into the current editor)
+                const clipboardData = e.originalEvent.clipboardData || window.clipboardData;
+                const pastedText = clipboardData.getData('text');
+                
+                const detectedType = autoDetectFileType(pastedText);
+
+                if (detectedType) {
+                    const targetEditor = $(`#${detectedType}-code`);
+                    
+                    targetEditor.val(pastedText);
+                    
+                    $('.nav-tab').removeClass('active');
+                    $(`.nav-tab[data-target="${detectedType}-editor"]`).addClass('active');
+                    
+                    if (window.innerWidth <= 768) {
+                        $('.editor-pane').removeClass('active');
+                        $(`#${detectedType}-editor`).addClass('active');
+                    } else {
+                        $('.editor-pane').addClass('active'); // On desktop, all are visible
+                    }
+                    
+                    updateLineNumbers(targetEditor.attr('id')); // Update line numbers after paste
+                    saveEditorContentToLocalStorage(); // Save pasted content
+                    if (autoRun) runCode();
+                    
+                    showToast(`${detectedType.toUpperCase()} code detected and pasted!`, 'success');
+                } else {
+                    showToast('File format not supported. Please paste manually into the correct editor, or clear it.', 'error');
+                }
+            });
+            
+            // --- Local Storage Persistence ---
+            function saveEditorContentToLocalStorage() {
+                localStorage.setItem('htmlCode', $('#html-code').val());
+                localStorage.setItem('cssCode', $('#css-code').val());
+                localStorage.setItem('jsCode', $('#js-code').val());
+            }
+
+            function loadEditorContentFromLocalStorage() {
+                const savedHtml = localStorage.getItem('htmlCode');
+                const savedCss = localStorage.getItem('cssCode');
+                const savedJs = localStorage.getItem('jsCode');
+
+                if (savedHtml !== null) {
+                    $('#html-code').val(savedHtml);
+                }
+                if (savedCss !== null) {
+                    $('#css-code').val(savedCss);
+                }
+                if (savedJs !== null) {
+                    $('#js-code').val(savedJs);
+                }
+            }
+
+            // --- Initial Setup on Load ---
+            loadEditorContentFromLocalStorage(); // Load saved content first
+            
+            // Set initial font size and line height
+            document.documentElement.style.setProperty('--font-size', `${fontSize}px`);
+            document.documentElement.style.setProperty('--line-height', '1.6');
+
+            $('.editor').each(function() {
+                // Initial update of line numbers for all editors after loading saved content
+                updateLineNumbers($(this).attr('id'));
+                // Apply initial line number visibility state
+                if (!showLineNumbers) {
+                    $(this).closest('.editor-pane').addClass('no-line-numbers');
+                }
+            });
+            
+            runCode(); // Run initial code after loading
+            applyTheme(); // Apply initial theme
+
+            // Set initial state of line numbers toggle button
+            $('#toggle-line-numbers').toggleClass('active', showLineNumbers);
+            
+            // --- Responsive Behavior ---
+            function handleResize() {
+                if (window.innerWidth <= 768) {
+                    // On mobile, only display the active editor pane
+                    $('.editor-pane').removeClass('active');
+                    $(`.editor-pane#${$('.nav-tab.active').data('target')}`).addClass('active');
+                    // Adjust sidebar width if it's currently open and screen is resized
+                    if ($('#settings-modal').hasClass('visible')) {
+                        $('#settings-modal .modal-content').css('width', '90%'); // Example for mobile width
+                    }
+                } else {
+                    // On desktop, display all editor panes
+                    $('.editor-pane').addClass('active');
+                    // Reset sidebar width for desktop if it's currently open
+                    if ($('#settings-modal').hasClass('visible')) {
+                        $('#settings-modal .modal-content').css('width', '320px');
+                    }
+                }
+            }
+            
+            $(window).resize(handleResize);
+            handleResize(); // Call on initial load
+        });
+    </script>
+</body>
+</html>
