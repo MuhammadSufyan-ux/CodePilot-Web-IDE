@@ -4,7 +4,7 @@
 CodePilot is an interactive web-based IDE designed for rapid prototyping of HTML, CSS, and JavaScript. It provides a seamless development experience by rendering code changes instantly in a side-by-side live preview window.
 
 ### 🛠️ Tech Stack
-* **Language:** Vanilla JavaScript / React.js
+* **Language:** html5 and jquerry 
 * **Styling:** CSS3 (with Flexbox/Grid for layout)
 * **Execution:** Dynamic iframe injection for real-time code rendering.
 
